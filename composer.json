@@ -1,0 +1,33 @@
+{
+  "name": "naimul/db-visualizer",
+  "description": "Laravel Database & Code Intelligence Visualizer (N+1, Relations, Performance Analyzer)",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Naimul Islam",
+      "email": "naimcse56@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^10|^11|^12",
+    "illuminate/filesystem": "^10|^11|^12",
+    "illuminate/cache": "^10|^11|^12",
+    "illuminate/database": "^10|^11|^12"
+  },
+  "autoload": {
+    "psr-4": {
+      "Naimul\\DbVisualizer\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Naimul\\DbVisualizer\\DbVisualizerServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
