@@ -39,7 +39,7 @@ class ModelScannerService
                 base_path('Modules'),
             ];
 
-            // 🔥 STEP 1: get changed files only
+            // STEP 1: get changed files only
             $tracker = app(\Naimul\DbVisualizer\Services\FileChangeTrackerService::class);
             $changedFiles = $tracker->getChangedFiles($paths);
 
@@ -48,9 +48,9 @@ class ModelScannerService
                 return Cache::get('db_visualizer_last_full_result', []);
             }
 
-            // 🔥 STEP 2: still need models list
+            // STEP 2: still need models list
             $models = $this->models->all();
-
+            
             foreach ($models as $modelClass) {
 
                 try {

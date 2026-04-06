@@ -39,9 +39,7 @@ class VisualizerController extends Controller
 
     public function detail($model)
     {
-        $data = collect($this->scanner->scan())
-            ->firstWhere('model', $model);
-
+        $data = collect($this->scanner->scan())->firstWhere('model', $model);
         if (!$data) {
             return response()->json(['message' => 'Model not found'], 404);
         }

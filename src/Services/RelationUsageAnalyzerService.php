@@ -9,7 +9,7 @@ class RelationUsageAnalyzerService
     protected array $fileCache = [];
 
     /**
-     * System columns that are always considered USED
+     * System columns always considered used
      */
     protected array $systemColumns = [
         'id',
@@ -19,7 +19,7 @@ class RelationUsageAnalyzerService
     ];
 
     /* =========================
-        FILE LOADING (OPTIMIZED)
+        LOAD FILES (CACHED)
     ========================= */
     protected function getAllFiles(): array
     {
@@ -68,7 +68,7 @@ class RelationUsageAnalyzerService
     }
 
     /* =========================
-        CLEAN CODE
+        REMOVE COMMENTS
     ========================= */
     protected function removeComments(string $code): string
     {
@@ -79,17 +79,31 @@ class RelationUsageAnalyzerService
     }
 
     /* =========================
-        RELATION USAGE CHECK
+        RELATION USAGE DETECTION
     ========================= */
     public function isRelationUsed(string $relation): bool
     {
         foreach ($this->getAllFiles() as $content) {
 
+            $content = $this->removeComments($content);
+
             if (
-                preg_match("/with\(['\"]{$relation}['\"]\)/", $content) ||
-                preg_match("/whereHas\(['\"]{$relation}['\"]\)/", $content) ||
-                preg_match("/load\(['\"]{$relation}['\"]\)/", $content) ||
-                preg_match("/withCount\(['\"]{$relation}['\"]\)/", $content) ||
+                // with('relation')
+                preg_match("/with\(\s*['\"]{$relation}['\"]\s*\)/", $content) ||
+
+                // with(['relation'])
+                preg_match("/with\(\s*\[.*['\"]{$relation}['\"].*\]\s*\)/s", $content) ||
+
+                // whereHas('relation')
+                preg_match("/whereHas\(\s*['\"]{$relation}['\"]\s*\)/", $content) ||
+
+                // load('relation')
+                preg_match("/load\(\s*['\"]{$relation}['\"]\s*\)/", $content) ||
+
+                // withCount('relation')
+                preg_match("/withCount\(\s*['\"]{$relation}['\"]\s*\)/", $content) ||
+
+                // direct access ->relation
                 preg_match("/->{$relation}\b/", $content)
             ) {
                 return true;
@@ -104,12 +118,13 @@ class RelationUsageAnalyzerService
     ========================= */
     public function isColumnUsed(string $column): bool
     {
-        // 🔥 SYSTEM COLUMNS ALWAYS USED
         if (in_array($column, $this->systemColumns, true)) {
             return true;
         }
 
         foreach ($this->getAllFiles() as $content) {
+
+            $content = $this->removeComments($content);
 
             if (
                 preg_match("/->{$column}\b/", $content) ||
@@ -125,7 +140,7 @@ class RelationUsageAnalyzerService
     }
 
     /* =========================
-        IMPROVED N+1 DETECTION
+        N+1 DETECTION
     ========================= */
     public function detectNPlusOne(string $relation): bool
     {
@@ -145,7 +160,7 @@ class RelationUsageAnalyzerService
             );
 
             $hasEagerLoad = preg_match(
-                "/with\(['\"]{$relation}['\"]\)/",
+                "/with\(\s*['\"]{$relation}['\"]\s*\)/",
                 $clean
             );
 
@@ -158,15 +173,16 @@ class RelationUsageAnalyzerService
     }
 
     /* =========================
-        EAGER LOADING CHECK
+        EAGER LOAD CHECK
     ========================= */
     public function isEagerLoaded(string $relation): bool
     {
         foreach ($this->getAllFiles() as $content) {
-            if (preg_match("/with\(['\"]{$relation}['\"]\)/", $content)) {
+            if (preg_match("/with\(\s*['\"]{$relation}['\"]\s*\)/", $content)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -183,6 +199,7 @@ class RelationUsageAnalyzerService
                 return true;
             }
         }
+
         return false;
     }
 
@@ -196,6 +213,7 @@ class RelationUsageAnalyzerService
                 return true;
             }
         }
+
         return false;
     }
 
@@ -273,14 +291,12 @@ class RelationUsageAnalyzerService
 
             $model['unused_relations_count'] = $unusedRelations;
             $model['unused_columns_count'] = $unusedColumns;
-
             $model['n_plus_one_issues'] = $nPlusOne;
             $model['missing_eager_loads'] = $missingEager;
-
             $model['columns_detailed'] = $columnsDetailed;
             $model['complexity'] = $complexity;
-
             $model['performance_score'] = max(0, min(100, $score));
+
             $model['quality_label'] = match (true) {
                 $model['performance_score'] >= 90 => 'Excellent Quality',
                 $model['performance_score'] >= 75 => 'Good Quality',

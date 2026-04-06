@@ -8,6 +8,13 @@ use ReflectionMethod;
 
 class RelationshipResolverService
 {
+    protected RelationUsageAnalyzerService $usageAnalyzer;
+
+    public function __construct(RelationUsageAnalyzerService $usageAnalyzer)
+    {
+        $this->usageAnalyzer = $usageAnalyzer;
+    }
+
     public function resolve($model): array
     {
         $relations = [];
@@ -16,8 +23,13 @@ class RelationshipResolverService
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
 
+            // Only model's own methods
             if ($method->class !== get_class($model)) continue;
+
+            // Skip methods with parameters
             if ($method->getNumberOfParameters() > 0) continue;
+
+            // Skip magic methods
             if (str_starts_with($method->getName(), '__')) continue;
 
             try {
@@ -26,14 +38,31 @@ class RelationshipResolverService
 
                 if ($result instanceof Relation) {
 
+                    $relationName = $method->getName();
+
+                    // USAGE DETECTION
+                    $isUsed = $this->usageAnalyzer->isRelationUsed($relationName);
+
+                    // N+1 DETECTION
+                    $nPlusOne = $this->usageAnalyzer->detectNPlusOne($relationName);
+
+                    // EAGER LOAD CHECK
+                    $isEagerLoaded = $this->usageAnalyzer->isEagerLoaded($relationName);
+
                     $relations[] = [
-                        'method' => $method->getName(),
+                        'method' => $relationName,
                         'type' => class_basename($result),
                         'related' => class_basename(get_class($result->getRelated())),
+
+                        // intelligence data
+                        'used' => $isUsed,
+                        'n_plus_one' => $nPlusOne,
+                        'missing_eager' => $isUsed && !$isEagerLoaded,
                     ];
                 }
 
             } catch (\Throwable $e) {
+                // silently skip broken methods
                 continue;
             }
         }
@@ -42,13 +71,13 @@ class RelationshipResolverService
     }
 
     /**
-     * 🔥 SAFE EXECUTION (NO SIDE EFFECT RISK)
+     * SAFE EXECUTION (NO SIDE EFFECT RISK)
      */
     protected function safeInvoke($model, ReflectionMethod $method)
     {
         $instance = clone $model;
 
-        // prevent loaded relations reuse
+        // prevent already-loaded relations reuse
         if (method_exists($instance, 'unsetRelations')) {
             $instance->unsetRelations();
         }
