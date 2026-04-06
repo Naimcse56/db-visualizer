@@ -6,4 +6,5 @@ Route::prefix('dbv')->group(function () {
     Route::get('/', [VisualizerController::class, 'index']);
     Route::get('/data', [VisualizerController::class, 'data']);
     Route::get('/detail/{model}', [VisualizerController::class, 'detail']);
+    Route::post('/cache-clear', [VisualizerController::class, 'clearCache']);
 });

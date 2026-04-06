@@ -4,6 +4,7 @@ namespace Naimul\DbVisualizer\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Naimul\DbVisualizer\Services\ModelScannerService;
+use Illuminate\Support\Facades\Artisan;
 
 class VisualizerController extends Controller
 {
@@ -15,6 +16,17 @@ class VisualizerController extends Controller
             abort(403, 'DB Visualizer disabled');
         }
         $this->scanner = $scanner;
+    }
+
+    public function clearCache()
+    {
+        Artisan::call('cache:clear');
+        Artisan::call('config:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+        Artisan::call('optimize:clear');
+
+        return back()->with('success', 'Cache cleared successfully!');
     }
 
     public function index()

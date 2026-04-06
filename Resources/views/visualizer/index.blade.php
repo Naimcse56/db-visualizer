@@ -56,9 +56,26 @@ body {
 <div class="topbar d-flex justify-content-between align-items-center">
 
     <div>
-        <h5 class="mb-0">
-            <i class="fa-brands fa-laravel"></i> DB Visualizer <b>Pro</b>
+        
+        <h5 class="mb-0 d-flex align-items-center gap-2">
+
+            <i class="fa-brands fa-laravel"></i>
+
+            <span>DB Visualizer <b>Pro</b></span>
+
+            <!-- CACHE BUTTON -->
+            <form method="POST" action="/dbv/cache-clear" class="d-inline">
+                @csrf
+                <button type="submit"
+                    class="btn btn-sm btn-light text-danger ms-2"
+                    title="Clear Laravel Cache">
+
+                    <i class="fa fa-broom"></i> Cache Clear
+                </button>
+            </form>
+
         </h5>
+
         <small>Laravel Model Intelligence Dashboard</small>
     </div>
 
@@ -72,6 +89,7 @@ body {
 
 <!-- STATS -->
 <div class="container-fluid mt-3">
+    
     <div class="row g-3 mb-3">
 
         <div class="col-md-4">
