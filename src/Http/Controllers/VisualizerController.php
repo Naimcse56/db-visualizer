@@ -11,6 +11,9 @@ class VisualizerController extends Controller
 
     public function __construct(ModelScannerService $scanner)
     {
+        if (app()->environment(['production', 'staging'])) {
+            abort(403, 'DB Visualizer disabled');
+        }
         $this->scanner = $scanner;
     }
 
@@ -21,7 +24,10 @@ class VisualizerController extends Controller
 
     public function data(Request $request)
     {
-        $data = $this->scanner->scan();
+        $response = $this->scanner->scan();
+
+        $data = $response['models'] ?? [];
+        $meta = $response['meta'] ?? [];
 
         $search = $request->get('search');
 
@@ -34,12 +40,20 @@ class VisualizerController extends Controller
             }));
         }
 
-        return response()->json($data);
+        return response()->json([
+            'data' => $data,
+            'meta' => $meta
+        ]);
     }
 
     public function detail($model)
     {
-        $data = collect($this->scanner->scan())->firstWhere('model', $model);
+        $response = $this->scanner->scan();
+
+        $models = $response['models'] ?? [];
+
+        $data = collect($models)->firstWhere('model', $model);
+
         if (!$data) {
             return response()->json(['message' => 'Model not found'], 404);
         }

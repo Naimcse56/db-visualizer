@@ -84,8 +84,48 @@ body {
 
         <div class="col-md-3">
             <div class="card p-3">
+                <h6>Total Tables</h6>
+                <h3 id="totalTables">0</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h6>Orphan Tables</h6>
+                <h3 id="orphanTablesCount">0</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3">
                 <small>Average Score</small>
                 <h4 id="avgScore">0</h4>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card mb-3">
+
+                <!-- HEADER (CLICKABLE) -->
+                <div class="card-header d-flex justify-content-between align-items-center"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#orphanCollapse"
+                    style="cursor:pointer;">
+
+                    <div>
+                        <h6 class="mb-0">Tables without Model</h6>
+                        <small class="text-muted">Click to expand</small>
+                    </div>
+
+                    <i class="fa fa-chevron-down" id="orphanIcon"></i>
+                </div>
+
+                <!-- COLLAPSIBLE BODY -->
+                <div id="orphanCollapse" class="collapse">
+                    <div class="card-body">
+                        <ul id="orphanTablesList" class="mb-0"></ul>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -93,7 +133,7 @@ body {
 
     <div class="row g-3" id="app">
         <div class="loader">
-            <i class="fa fa-spinner fa-spin"></i> Loading...
+            <i class="fa fa-spinner fa-spin"></i> Data Scanning...
         </div>
     </div>
 
@@ -121,8 +161,7 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
-let timer;
+    let timer;
 let globalData = [];
 
 /* SAFE TEXT */
@@ -140,19 +179,45 @@ function escapeHtml(str) {
 function loadData(search = '') {
 
     document.getElementById('app').innerHTML =
-        `<div class="loader"><i class="fa fa-spinner fa-spin"></i> Loading...</div>`;
+        `<div class="loader"><i class="fa fa-spinner fa-spin"></i> Data Scanning...</div>`;
 
     fetch(`/dbv/data?search=${encodeURIComponent(search)}`)
         .then(r => r.json())
-        .then(data => {
-            globalData = Array.isArray(data) ? data : [];
-            render(globalData);
-            updateStats(globalData);
+        .then(res => {
+
+            let data = res.data || [];
+            let meta = res.meta || {};
+
+            globalData = data;
+
+            render(data);
+            updateStats(data);
+            updateMeta(meta); // 🔥 NEW
+
         })
         .catch(() => {
             document.getElementById('app').innerHTML =
                 `<div class="text-danger text-center">Failed to load data</div>`;
         });
+}
+
+/* META (NEW) */
+function updateMeta(meta) {
+
+    document.getElementById('totalTables').innerText =
+        meta.total_tables ?? 0;
+
+    document.getElementById('orphanTablesCount').innerText =
+        meta.orphan_tables_count ?? 0;
+
+    let list = document.getElementById('orphanTablesList');
+    list.innerHTML = '';
+
+    (meta.orphan_tables || []).forEach(table => {
+        let li = document.createElement('li');
+        li.innerText = table;
+        list.appendChild(li);
+    });
 }
 
 /* STATS */
@@ -184,21 +249,23 @@ function render(data) {
 
     let html = '';
 
-    data.forEach(item => {
+    data.forEach((item, index) => {
 
         let score = item.performance_score ?? 0;
 
         html += `
         <div class="col-md-4 col-xl-3">
 
-            <div class="card model-card h-100">
+            <div class="card model-card h-100 position-relative">
 
                 <div class="card-body">
 
                     <div class="d-flex justify-content-between">
 
                         <div>
-                            <h6 class="mb-0">${escapeHtml(item.model)}</h6>
+                            <h6 class="mb-0">
+                                ${index + 1}. ${escapeHtml(item.model)}
+                            </h6>
                             <small class="text-muted">${escapeHtml(item.table)}</small>
                         </div>
 
@@ -229,8 +296,6 @@ function render(data) {
                         </span>
 
                         ${item.soft_deletes ? `<span class="badge bg-success">Soft Deletes</span>` : ''}
-                        ${item.cache_used ? `<span class="badge bg-info text-dark">Cache</span>` : ''}
-                        ${item.api_resource_used ? `<span class="badge bg-primary">API Resource</span>` : ''}
 
                         <span class="badge bg-dark">
                             ${item.quality_label ?? 'N/A'}
@@ -291,6 +356,9 @@ function openDetail(model) {
                 return;
             }
 
+            // =========================
+            // SCORE CALCULATION
+            // =========================
             let base = 100;
 
             let relationPenalty = (data.unused_relations_count ?? 0) * 10;
@@ -317,40 +385,91 @@ function openDetail(model) {
 
             finalScore = Math.max(0, Math.min(100, finalScore));
 
+            // =========================
+            // TITLE
+            // =========================
             document.getElementById('mTitle').innerText = data.model ?? '';
             document.getElementById('mTable').innerText = data.table ?? '';
 
+            // =========================
+            // COLUMNS
+            // =========================
             let cols = (data.columns_detailed ?? []).map(c => `
                 <span class="badge m-1 ${c.used ? 'bg-light text-dark border' : 'bg-danger'}">
                     ${escapeHtml(c.name)}
                 </span>
             `).join('');
 
+            // =========================
+            // RELATIONS
+            // =========================
             let rels = (data.relations ?? []).map(r => `
                 <tr>
                     <td>${escapeHtml(r.method)}</td>
                     <td>${escapeHtml(r.type ?? '-')}</td>
                     <td>${escapeHtml(r.related ?? '-')}</td>
-                    <td>${r.used ? '<span class="text-success">Used</span>' : '<span class="text-danger">Unused</span>'}</td>
+                    <td>
+                        ${r.used ? '<span class="text-success">Used</span>' : '<span class="text-danger">Unused</span>'}
+                        ${r.n_plus_one ? '<span class="badge bg-danger ms-1">N+1</span>' : ''}
+                        ${r.missing_eager ? '<span class="badge bg-warning text-dark ms-1">Eager Missing</span>' : ''}
+                    </td>
                 </tr>
             `).join('');
 
+            // =========================
+            // FULL MODAL CONTENT
+            // =========================
             document.getElementById('modalBody').innerHTML = `
-                <div class="card p-3 mb-3 bg-light">
-                    <h6>Score Breakdown</h6>
 
-                    <div class="d-flex justify-content-between"><span>Base</span><b>100</b></div>
-                    <div class="d-flex justify-content-between text-danger"><span>Relation</span><b>-${relationPenalty}</b></div>
-                    <div class="d-flex justify-content-between text-danger"><span>Column</span><b>-${columnPenalty}</b></div>
-                    <div class="d-flex justify-content-between text-danger"><span>N+1</span><b>-${nPlusOnePenalty}</b></div>
-                    <div class="d-flex justify-content-between text-danger"><span>Eager Load</span><b>-${eagerPenalty}</b></div>
-                    <div class="d-flex justify-content-between text-success"><span>Final</span><b>${finalScore}/100</b></div>
+                <!-- SCORE CARD -->
+                <div class="card p-3 mb-3 bg-light">
+
+                    <h6 class="mb-2">Score Breakdown</h6>
+
+                    <div class="d-flex justify-content-between">
+                        <span>Base</span>
+                        <b>100</b>
+                    </div>
+
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Unused Relations</span>
+                        <b>-${relationPenalty}</b>
+                    </div>
+
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Unused Columns</span>
+                        <b>-${columnPenalty}</b>
+                    </div>
+
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>N+1 Issues</span>
+                        <b>-${nPlusOnePenalty}</b>
+                    </div>
+
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Missing Eager Loads</span>
+                        <b>-${eagerPenalty}</b>
+                    </div>
+
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Complexity Penalty</span>
+                        <b>-${complexityPenalty}</b>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between text-success">
+                        <span>Final Score</span>
+                        <b>${finalScore}/100</b>
+                    </div>
 
                 </div>
 
+                <!-- COLUMNS -->
                 <h6>Columns</h6>
                 <div>${cols}</div>
 
+                <!-- RELATIONS -->
                 <h6 class="mt-3">Relations</h6>
                 <table class="table table-sm table-bordered">
                     <thead>
@@ -375,8 +494,8 @@ document.getElementById('search').addEventListener('input', function () {
     timer = setTimeout(() => loadData(this.value), 300);
 });
 
+/* INIT */
 loadData();
-
 </script>
 
 </body>

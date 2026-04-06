@@ -25,6 +25,8 @@ class ModelScannerService
         $this->usageAnalyzer = $usageAnalyzer;
     }
 
+    
+
     public function scan()
     {
         $cacheKey = 'db_visualizer_incremental_v1';
@@ -39,18 +41,16 @@ class ModelScannerService
                 base_path('Modules'),
             ];
 
-            // STEP 1: get changed files only
             $tracker = app(\Naimul\DbVisualizer\Services\FileChangeTrackerService::class);
             $changedFiles = $tracker->getChangedFiles($paths);
 
-            // If nothing changed → return cached full result
             if (empty($changedFiles)) {
                 return Cache::get('db_visualizer_last_full_result', []);
             }
 
-            // STEP 2: still need models list
+            // LOAD MODELS
             $models = $this->models->all();
-            
+
             foreach ($models as $modelClass) {
 
                 try {
@@ -74,12 +74,32 @@ class ModelScannerService
                 }
             }
 
+            //  NEW: TABLE ANALYSIS
+            $allTables = $this->schema->allTables();
+
+            $modelTables = array_map(function ($item) {
+                return $item['table'];
+            }, $data);
+
+            $orphanTables = array_values(array_diff($allTables, $modelTables));
+
+            // ANALYZE
             $result = $this->usageAnalyzer->analyze($data);
 
-            // STORE FULL RESULT FOR FAST NEXT TIME
-            Cache::put('db_visualizer_last_full_result', $result, now()->addDays(7));
+            // FINAL RESPONSE
+            $final = [
+                'models' => $result,
+                'meta' => [
+                    'total_models' => count($result),
+                    'total_tables' => count($allTables),
+                    'orphan_tables_count' => count($orphanTables),
+                    'orphan_tables' => $orphanTables,
+                ]
+            ];
 
-            return $result;
+            Cache::put('db_visualizer_last_full_result', $final, now()->addDays(7));
+
+            return $final;
         });
     }
 
