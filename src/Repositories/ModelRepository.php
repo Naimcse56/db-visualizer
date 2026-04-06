@@ -100,7 +100,7 @@ class ModelRepository
             }
 
             /**
-             * 🔥 3. NEW: App/Models (YOUR CASE)
+             * 3. NEW: App/Models (YOUR CASE)
              */
             $appModelsPath = $moduleBase . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR . 'Models';
 
@@ -111,9 +111,15 @@ class ModelRepository
                         $file,
                         "Modules\\{$module}\\App\\Models"
                     );
-
+                    $anotherClass = $this->getClassFromFile(
+                                        $file,
+                                        "Modules\\{$module}\\Models"
+                                    );
                     if ($class && class_exists($class)) {
                         $models[] = $class;
+                    } 
+                    if ($anotherClass && class_exists($anotherClass)) {
+                        $models[] = $anotherClass;
                     }
                 }
             }
