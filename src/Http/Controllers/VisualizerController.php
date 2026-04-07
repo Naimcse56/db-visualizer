@@ -3,8 +3,8 @@
 namespace Naimul\DbVisualizer\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Naimul\DbVisualizer\Services\ModelScannerService;
 use Illuminate\Support\Facades\Artisan;
+use Naimul\DbVisualizer\Services\ModelScannerService;
 
 class VisualizerController extends Controller
 {
@@ -30,7 +30,7 @@ class VisualizerController extends Controller
     }
 
     public function index()
-    {        
+    {
         $composerJson = json_decode(file_get_contents(base_path('composer.json')), true);
         $composerLock = json_decode(file_get_contents(base_path('composer.lock')), true);
 
@@ -60,7 +60,6 @@ class VisualizerController extends Controller
             ->values();
 
         return view('dbv::visualizer.index', compact('extraPackages'));
-        return view('dbv::visualizer.index');
     }
 
     public function data(Request $request)
