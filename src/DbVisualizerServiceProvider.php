@@ -41,7 +41,7 @@ class DbVisualizerServiceProvider extends ServiceProvider
             ], 'dbv-config');
 
             $this->publishes([
-                __DIR__.'/Resources/views' => resource_path('views/vendor/dbv'),
+                __DIR__.'/../resources/views' => resource_path('views/vendor/dbv'),
             ], 'dbv-views');
         }
     }

@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Auth\Middleware\Authorize;
-
 return [
     /*
     |--------------------------------------------------------------------------
@@ -45,7 +43,6 @@ return [
 
     'middleware' => [
         'web',
-        Authorize::class,
     ],
 
     /*
