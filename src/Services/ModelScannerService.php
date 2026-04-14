@@ -34,9 +34,9 @@ class ModelScannerService
 
     public function scan()
     {
-        $cacheKey = 'db_visualizer_incremental_v1';
+        $cacheKey = config('db-visualizer.cache_key');
 
-        return Cache::remember($cacheKey, 3600, function () {
+        return Cache::remember($cacheKey, config('db-visualizer.cache_ttl'), function () {
 
             $data = [];
 
@@ -50,7 +50,7 @@ class ModelScannerService
             $changedFiles = $tracker->getChangedFiles($paths);
 
             if (empty($changedFiles)) {
-                return Cache::get('db_visualizer_last_full_result', []);
+                return Cache::get(config('db-visualizer.cache_key').'_full_result', []);
             }
 
             // LOAD MODELS
@@ -104,7 +104,7 @@ class ModelScannerService
                 ],
             ];
 
-            Cache::put('db_visualizer_last_full_result', $final, now()->addDays(7));
+            Cache::put(config('db-visualizer.cache_key').'_full_result', $final, now()->addDays(7));
 
             return $final;
         });

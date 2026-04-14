@@ -7,7 +7,12 @@ use Illuminate\Support\Facades\File;
 
 class FileChangeTrackerService
 {
-    protected string $cacheKey = 'model_scan_file_hash_v1';
+    protected string $cacheKey;
+
+    public function __construct()
+    {
+        $this->cacheKey = config('db-visualizer.cache_key').'_file_hash';
+    }
 
     public function getChangedFiles(array $paths): array
     {
