@@ -13,6 +13,7 @@ class CacheController extends Controller
         Cache::forget($key);
         Cache::forget($key.'_full_result');
         Cache::forget($key.'_file_hash');
+        Cache::forget($key.'_composer');
 
         return back()->with('success', 'Cache cleared successfully!');
     }
