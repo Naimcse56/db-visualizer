@@ -57,6 +57,7 @@ class DbVisualizerServiceProvider extends ServiceProvider
             'domain' => config('db-visualizer.domain', null),
             'namespace' => 'Naimul\DbVisualizer\Http\Controllers',
             'prefix' => config('db-visualizer.path'),
+            'as' => 'visualizer.',
             'middleware' => 'db-visualizer',
         ], function () {
             $this->loadRoutesFrom(__DIR__.'/../routes/web.php');

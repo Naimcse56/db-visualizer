@@ -64,7 +64,7 @@ body {
             <span>DB Visualizer <b>Pro</b></span>
 
             <!-- CACHE BUTTON -->
-            <form method="POST" action="/dbv/cache-clear" class="d-inline">
+            <form method="POST" action="{{ route('visualizer.clear-cache') }}" class="d-inline">
                 @csrf
                 <button type="submit"
                     class="btn btn-sm btn-light text-danger ms-2"
@@ -260,6 +260,9 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    const dbvDataUrl = @json(route('visualizer.data'));
+    const dbvDetailUrl = @json(route('visualizer.detail', ['model' => '__MODEL__']));
+
     let timer;
 let globalData = [];
 
@@ -280,7 +283,7 @@ function loadData(search = '') {
     document.getElementById('app').innerHTML =
         `<div class="loader"><i class="fa fa-spinner fa-spin"></i> Data Scanning...</div>`;
 
-    fetch(`/dbv/data?search=${encodeURIComponent(search)}`)
+    fetch(`${dbvDataUrl}?search=${encodeURIComponent(search)}`)
         .then(r => r.json())
         .then(res => {
 
@@ -446,7 +449,7 @@ function render(data) {
 /* DETAIL */
 function openDetail(model) {
 
-    fetch(`/dbv/detail/${encodeURIComponent(model)}`)
+    fetch(dbvDetailUrl.replace('__MODEL__', encodeURIComponent(model)))
         .then(r => r.json())
         .then(data => {
 
