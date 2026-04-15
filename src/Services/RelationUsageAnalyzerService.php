@@ -293,6 +293,7 @@ class RelationUsageAnalyzerService
             $complexity = match (true) {
                 $scoreBase <= 10 => 'Low',
                 $scoreBase <= 25 => 'Medium',
+                $scoreBase <= 65 => 'Better',
                 default => 'High',
             };
 
